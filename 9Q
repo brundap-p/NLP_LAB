@@ -1,0 +1,96 @@
+# ---------------------------------------------------------
+# PART 1: POS TAGGING USING DIFFERENT TAGGERS (NLTK)
+# ---------------------------------------------------------
+import nltk
+nltk.download('treebank')
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('averaged_perceptron_tagger_eng') # Added to resolve LookupError
+nltk.download('punkt_tab')
+
+from nltk.corpus import treebank
+from nltk.tag import UnigramTagger, BigramTagger, TrigramTagger
+
+# Load built-in dataset
+train_data = treebank.tagged_sents()[:3000]
+test_data = treebank.tagged_sents()[3000:]
+
+# Default NLTK POS Tagger (Perceptron)
+sentence = "The quick brown fox jumps over the lazy dog"
+print("\n---- Default NLTK POS Tagger ----")
+print(nltk.pos_tag(nltk.word_tokenize(sentence)))
+
+# Unigram Tagger
+unigram_tagger = UnigramTagger(train_data)
+print("\n---- Unigram Tagger Accuracy ----")
+print(unigram_tagger.evaluate(test_data))
+
+# Bigram Tagger
+bigram_tagger = BigramTagger(train_data, backoff=unigram_tagger)
+print("\n---- Bigram Tagger Accuracy ----")
+print(bigram_tagger.evaluate(test_data))
+
+# Trigram Tagger
+trigram_tagger = TrigramTagger(train_data, backoff=bigram_tagger)
+print("\n---- Trigram Tagger Accuracy ----")
+print(trigram_tagger.evaluate(test_data))
+
+# Testing custom sentence
+print("\n---- Trigram POS Tagger Output ----")
+print(trigram_tagger.tag(sentence.split()))
+
+
+import nltk
+from nltk.corpus import conll2002
+from nltk import classify, ConditionalFreqDist
+
+# Download dataset
+nltk.download('conll2002')
+
+# Load training and testing data
+train_sents = conll2002.iob_sents('esp.train')
+test_sents = conll2002.iob_sents('esp.testb')
+
+# Feature extractor
+def ner_features(sentence, index):
+    word = sentence[index][0]
+    return {
+        'word': word,
+        'suffix3': word[-3:],
+        'suffix2': word[-2:],
+        'is_title': word.istitle(),
+        'is_upper': word.isupper(),
+        'prev_word': '' if index == 0 else sentence[index-1][0],
+        'next_word': '' if index == len(sentence)-1 else sentence[index+1][0],
+    }
+
+# Convert dataset into features
+def convert_to_dataset(sentences):
+    X, y = [], []
+    for sent in sentences:
+        for i in range(len(sent)):
+            X.append(ner_features(sent, i))
+            y.append(sent[i][2])  # IOB Tag
+    return X, y
+
+X_train, y_train = convert_to_dataset(train_sents)
+X_test, y_test = convert_to_dataset(test_sents)
+
+# Train Naive Bayes Classifier
+classifier = nltk.NaiveBayesClassifier.train(zip(X_train, y_train))
+
+# Evaluate accuracy
+accuracy = classify.accuracy(classifier, zip(X_test, y_test))
+print("NER Accuracy:", accuracy)
+
+# -------------------------
+# RUN NER ON CUSTOM TEXT
+# -------------------------
+sentence = [("Barack", "NNP"), ("Obama", "NNP"), ("visited", "VBD"),
+            ("Google", "NNP"), ("in", "IN"), ("Spain", "NNP")]
+
+print("\nNER OUTPUT:")
+for i in range(len(sentence)):
+    feats = ner_features(sentence, i)
+    tag = classifier.classify(feats)
+    print(sentence[i][0], "-->", tag)
