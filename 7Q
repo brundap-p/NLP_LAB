@@ -1,0 +1,53 @@
+import nltk
+import subprocess
+import sys
+
+# Install NLTK
+subprocess.check_call([sys.executable, "-m", "pip", "install", "nltk"])
+
+# Download WordNet
+nltk.download('wordnet')
+nltk.download('omw-1.4') # Required for context-aware lemmatization in later steps
+
+from nltk.stem import WordNetLemmatizer
+
+def basic_lemmatize(word):
+  """
+  Performs basic lemmatization on a word using WordNet.
+  """
+  lemmatizer = WordNetLemmatizer()
+  return lemmatizer.lemmatize(word)
+
+# Example usage:
+print(basic_lemmatize("cats"))
+print(basic_lemmatize("running"))
+print(basic_lemmatize("went"))
+
+from nltk.stem import WordNetLemmatizer
+
+def context_aware_lemmatize(word, pos):
+  """
+  Performs context-aware lemmatization on a word using WordNet and a specified part of speech.
+  """
+  lemmatizer = WordNetLemmatizer()
+  return lemmatizer.lemmatize(word, pos=pos)
+
+# Example usage with context:
+print(context_aware_lemmatize("running", "v")) # running as a verb
+print(context_aware_lemmatize("running", "n")) # running as a noun
+print(context_aware_lemmatize("better", "a"))  # better as an adjective
+print(context_aware_lemmatize("better", "r"))  # better as an adverb
+
+# Demonstrate basic lemmatization
+print("--- Basic Lemmatization ---")
+words_to_lemmatize = ["cats", "running", "went", "better", "dogs", "flies"]
+for word in words_to_lemmatize:
+  print(f"Original word: {word}, Lemmatized word: {basic_lemmatize(word)}")
+
+print("\n--- Context-Aware Lemmatization ---")
+# Demonstrate context-aware lemmatization
+# Examples with different POS tags for the same word
+print(f"Original word: running (verb), Lemmatized word: {context_aware_lemmatize('running', 'v')}")
+print(f"Original word: running (noun), Lemmatized word: {context_aware_lemmatize('running', 'n')}")
+print(f"Original word: better (adjective), Lemmatized word: {context_aware_lemmatize('better', 'a')}")
+print(f"Original word: better (adverb), Lemmatized word: {context_aware_lemmatize('better', 'r')}")
