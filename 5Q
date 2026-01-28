@@ -1,0 +1,44 @@
+%pip install nltk
+
+import nltk
+nltk.download('wordnet')
+
+from nltk.corpus import wordnet
+
+def get_antonyms(word):
+    antonyms = set()
+    for syn in wordnet.synsets(word):
+        for lemma in syn.lemmas():
+            for antonym in lemma.antonyms():
+                antonyms.add(antonym.name())
+    return antonyms
+
+# Example usage:
+print(get_antonyms("happy"))
+
+import nltk
+nltk.download('punkt_tab')
+
+
+import nltk
+
+def analyze_text_contrast(text1, text2):
+    tokens1 = nltk.word_tokenize(text1.lower())
+    tokens2 = nltk.word_tokenize(text2.lower())
+
+    antonym_pairs = []
+
+    for word1 in tokens1:
+        antonyms_of_word1 = get_antonyms(word1)
+        for word2 in tokens2:
+            if word2 in antonyms_of_word1:
+                antonym_pairs.append((word1, word2))
+
+    return antonym_pairs
+
+# text contrast analysis
+text1 = "The light day was happy."
+text2 = "The dark night was sad."
+
+contrast_results = analyze_text_contrast(text1, text2)
+print(contrast_results)
