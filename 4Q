@@ -1,0 +1,36 @@
+%pip install nltk
+import nltk
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+
+# to get synonyms from WordNet
+from nltk.corpus import wordnet
+
+def get_synonyms(word):
+  synonyms = set()
+  for syn in wordnet.synsets(word):
+    for lemma in syn.lemmas():
+      synonyms.add(lemma.name().replace('_', ' '))
+  return list(synonyms)
+
+word = "great"
+synonyms = get_synonyms(word)
+print(f"Synonyms for '{word}': {synonyms}")
+
+#Create synonym expansion for query enhancement
+def expand_query(query):
+  words = query.split()
+  expanded_terms = set()
+
+  for word in words:
+    expanded_terms.add(word)  # Add the original word
+    synonyms = get_synonyms(word)
+    expanded_terms.update(synonyms) # Add the synonyms
+
+  return " ".join(list(expanded_terms))
+
+# Example usage:
+query = "great"
+expanded_query = expand_query(query)
+print(f"Original query: {query}")
+print(f"Expanded query: {expanded_query}")
