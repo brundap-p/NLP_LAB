@@ -1,0 +1,134 @@
+#case study part program
+pip install indic-nlp-library
+
+# ===============================
+# MULTILINGUAL NLP – HINDI → ENGLISH TRANSLATION
+# (NOT Roman Transliteration)
+# ===============================
+
+# Install required library (run once)
+!pip install deep-translator
+
+# -------------------------------
+# IMPORTS
+# -------------------------------
+import re
+from deep_translator import GoogleTranslator
+
+# -------------------------------
+# SAMPLE HINDI TEXT
+# -------------------------------
+hindi_text = "भारत एक महान देश है।"
+
+print("Original Hindi Text:")
+print(hindi_text)
+print("-" * 40)
+
+# -------------------------------
+# CLEANING FUNCTION
+# -------------------------------
+def clean_hindi_text(text):
+    # Keep only Devanagari characters and spaces
+    text = re.sub(r"[^\u0900-\u097F\s]", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+clean_text = clean_hindi_text(hindi_text)
+
+print("Cleaned Hindi Text:")
+print(clean_text)
+print("-" * 40)
+
+# -------------------------------
+# TOKENIZATION
+# -------------------------------
+tokens = clean_text.split()
+
+print("Hindi Tokens:")
+print(tokens)
+print("-" * 40)
+
+# -------------------------------
+# TRANSLATION: HINDI → ENGLISH
+# -------------------------------
+english_translation = GoogleTranslator(
+    source="hi",
+    target="en"
+).translate(clean_text)
+
+print("English Translation:")
+print(english_translation)
+print("-" * 40)
+
+# =========================================
+# HINDI NLP: CLEANING + TOKENIZATION + TRANSLITERATION
+# (OUTPUT MATCHING YOUR FORMAT)
+# =========================================
+
+!pip install indic-transliteration
+
+# -----------------------------
+# IMPORTS
+# -----------------------------
+import re
+from indic_transliteration import sanscript
+from indic_transliteration.sanscript import transliterate
+
+# -----------------------------
+# INPUT HINDI TEXT
+# -----------------------------
+hindi_text = "यहाँ कुछ हिन्दी वाक्य लिखिए उदाहरण के लिए।"
+
+print("Original Text:")
+print(hindi_text)
+print("-" * 45)
+
+# -----------------------------
+# CLEANING (keep । also)
+# -----------------------------
+def clean_hindi(text):
+    # Keep Devanagari + danda (।)
+    text = re.sub(r"[^\u0900-\u097F\s।]", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+clean_text = clean_hindi(hindi_text)
+
+print("Cleaned Text:")
+print(clean_text)
+print("-" * 45)
+
+# -----------------------------
+# TOKENIZATION
+# -----------------------------
+tokens = clean_text.split()
+
+print("Tokens:")
+print(tokens)
+print("-" * 45)
+
+# -----------------------------
+# ENGLISH TRANSLITERATION (IAST)
+# -----------------------------
+roman_text = transliterate(
+    clean_text,
+    sanscript.DEVANAGARI,
+    sanscript.IAST
+)
+
+print("English Transliteration |")
+print(roman_text)
+print("-" * 45)
+
+# -----------------------------
+# BACK TO DEVANAGARI
+# -----------------------------
+back_text = transliterate(
+    roman_text,
+    sanscript.IAST,
+    sanscript.DEVANAGARI
+)
+
+print("Back to Devanagari:")
+print(back_text)
+print("-" * 45)
