@@ -1,0 +1,51 @@
+import nltk
+from nltk.corpus import gutenberg
+from nltk.corpus import stopwords
+from nltk.probability import FreqDist
+
+# Download necessary NLTK data (if not already downloaded)
+nltk.download('gutenberg')
+nltk.download('stopwords')
+nltk.download('punkt')
+
+# Load a text from the Gutenberg corpus (e.g., 'austen-emma.txt')
+emma_words = gutenberg.words('austen-emma.txt')
+
+# Convert words to lowercase
+emma_words = [word.lower() for word in emma_words]
+
+# Remove punctuation (optional, but good practice for word frequency)
+emma_words = [word for word in emma_words if word.isalpha()]
+
+# Print the most common words
+print("Most common words:")
+display(fdist.most_common(20))
+
+# Create frequency distribution
+fdist = FreqDist(filtered_words)
+# plot the frequency distribution
+import matplotlib.pyplot as plt
+fdist.plot(30,cumulative=False)
+plt.show()
+
+# Get English stop words
+stop_words = set(stopwords.words('english'))
+
+# Remove stop words
+filtered_words = [word for word in emma_words if word not in stop_words]
+
+# Define a custom stop word list
+custom_stop_words = ['mr', 'mrs', 'miss']
+
+# Add custom stop words to the existing stop word set
+all_stop_words = stop_words.union(set(custom_stop_words))
+
+# Remove both standard and custom stop words
+filtered_words_custom = [word for word in emma_words if word not in all_stop_words]
+
+# Create frequency distribution with custom stop words removed
+fdist_custom = FreqDist(filtered_words_custom)
+
+# Print the most common words after removing custom stop words
+print("\nMost common words after removing custom stop words:")
+display(fdist_custom.most_common(20))
