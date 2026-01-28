@@ -1,0 +1,31 @@
+from sklearn.datasets import fetch_20newsgroups
+from nltk.tokenize import word_tokenize, sent_tokenize
+
+# Download the 20 Newsgroups dataset
+# Using 'subset="all"' to get both training and test data
+newsgroups_data = fetch_20newsgroups(subset='all', remove=('headers', 'footers', 'quotes'))
+
+# Access the text data
+text_data = newsgroups_data.data[0] # Using the first document for demonstration
+
+print("Original Text:")
+print(text_data)
+
+import nltk
+nltk.download('punkt_tab')
+
+# Word Tokenization
+word_tokens = word_tokenize(text_data)
+print("\nWord Tokens:")
+print(word_tokens)
+
+# Sentence Tokenization
+sentence_tokens = sent_tokenize(text_data)
+print("\nSentence Tokens:")
+print(sentence_tokens)
+
+
+# Character Tokenization
+char_tokens = list(text_data)
+print("\nCharacter Tokens:")
+print(char_tokens)
