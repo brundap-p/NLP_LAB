@@ -1,0 +1,56 @@
+%pip install nltk
+
+import nltk
+nltk.download('punkt')
+nltk.download('snowball_data')
+
+from nltk.stem import PorterStemmer, SnowballStemmer
+
+def english_stemming(words):
+    """
+    Applies Porter and Snowball stemmers to a list of English words.
+    """
+    porter = PorterStemmer()
+    snowball = SnowballStemmer("english")
+    results = []
+    for word in words:
+        porter_stemmed = porter.stem(word)
+        snowball_stemmed = snowball.stem(word)
+        results.append((word, porter_stemmed, snowball_stemmed))
+    return results
+
+from nltk.stem import SnowballStemmer
+
+def non_english_stemming(words, language):
+    """
+    Applies the Snowball stemmer to a list of non-English words for a specified language.
+    """
+    stemmer = SnowballStemmer(language)
+    results = []
+    for word in words:
+        stemmed_word = stemmer.stem(word)
+        results.append((word, stemmed_word))
+    return results
+
+import pandas as pd
+
+# 1. Create a list of sample English words
+english_words = ["running", "ran", "runner", "easily", "fairly", "beautifully", "cats", "cities", "lying", "lied"]
+
+# 2. Call the english_stemming function and store the results
+english_stemming_results = english_stemming(english_words)
+
+# 3. Create a list of sample words in a non-English language (Spanish)
+spanish_words = ["hablando", "hablar", "habló", "corriendo", "correr", "corrió", "gatos", "ciudades"]
+
+# 4. Call the non_english_stemming function and store the results
+spanish_stemming_results = non_english_stemming(spanish_words, "spanish")
+
+# 5. Print the results using pandas DataFrames
+english_df = pd.DataFrame(english_stemming_results, columns=["Original", "Porter Stemmed", "Snowball Stemmed"])
+print("English Stemming Results:")
+display(english_df)
+
+spanish_df = pd.DataFrame(spanish_stemming_results, columns=["Original", "Snowball Stemmed"])
+print("\nSpanish Stemming Results:")
+display(spanish_df)
