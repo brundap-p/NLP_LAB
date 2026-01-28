@@ -1,0 +1,165 @@
+pip install pandas numpy scikit-learn gensim nltk
+
+#case study q Python code: Word2Vec + GloVe embeddingsimport re
+import numpy as np
+import pandas as pd
+
+from sklearn.metrics.pairwise import cosine_similarity
+from gensim.models import Word2Vec
+import gensim.downloader as api
+
+# ----------------------------
+# 1) LOAD DATASET (Kaggle CSV)
+# ----------------------------
+
+# Update the path + column name if needed.
+csv_path = "/content/Articles.csv"   # <- change to your file path
+TEXT_COL = "Article"           # <- change if your dataset uses another column name
+
+df = pd.read_csv(csv_path, encoding='latin1')
+df = df.dropna(subset=[TEXT_COL]).reset_index(drop=True)
+
+# ----------------------------
+# 2) BASIC NLP PREPROCESSING
+# ----------------------------
+try:
+    import nltk
+    from nltk.corpus import stopwords
+    nltk.download("stopwords", quiet=True)
+    STOPWORDS = set(stopwords.words("english"))
+except Exception:
+    STOPWORDS = set()
+
+def tokenize(text: str):
+    text = text.lower()
+    text = re.sub(r"http\S+|www\.\S+", " ", text)      # remove URLs
+    text = re.sub(r"[^a-z\s]", " ", text)              # keep letters/spaces
+    tokens = [t for t in text.split() if len(t) >= 2 and t not in STOPWORDS]
+    return tokens
+
+tokenized_docs = df[TEXT_COL].astype(str).apply(tokenize).tolist()
+
+# ----------------------------
+# 3) WORD2VEC (TRAINED)
+# ----------------------------
+w2v_dim = 100
+w2v = Word2Vec(
+    sentences=tokenized_docs,
+    vector_size=w2v_dim,
+    window=5,
+    min_count=2,
+    workers=4,
+    sg=1,              # sg=1 => Skip-gram (often strong); sg=0 => CBOW
+    epochs=10
+)
+
+# ----------------------------
+# 4) GloVe (PRE-TRAINED)
+# ----------------------------
+# Small + common: glove-wiki-gigaword-100
+glove = api.load("glove-wiki-gigaword-100")  # downloads first time
+glove_dim = glove.vector_size
+
+# ----------------------------
+# 5) DOCUMENT EMBEDDINGS (AVERAGE WORD VECTORS)
+# ----------------------------
+def doc_vector_avg(tokens, keyed_vectors, dim):
+    vecs = []
+    for t in tokens:
+        if t in keyed_vectors:
+            vecs.append(keyed_vectors[t])
+    if not vecs:
+        return np.zeros(dim, dtype=np.float32)
+    return np.mean(vecs, axis=0).astype(np.float32)
+
+# Word2Vec doc vectors
+doc_vecs_w2v = np.vstack([
+    doc_vector_avg(tokens, w2v.wv, w2v_dim) for tokens in tokenized_docs
+])
+
+# GloVe doc vectors
+doc_vecs_glove = np.vstack([
+    doc_vector_avg(tokens, glove, glove_dim) for tokens in tokenized_docs
+])
+
+print("Word2Vec doc matrix:", doc_vecs_w2v.shape)
+print("GloVe doc matrix:", doc_vecs_glove.shape)
+
+# ----------------------------
+# 6) QUICK WORD CHECKS
+# ----------------------------
+print("\nWord2Vec similar to 'computer':")
+if "computer" in w2v.wv:
+    print(w2v.wv.most_similar("computer", topn=5))
+else:
+    print("Word not in Word2Vec vocab")
+
+print("\nGloVe similar to 'computer':")
+if "computer" in glove:
+    print(glove.most_similar("computer", topn=5))
+else:
+    print("Word not in GloVe vocab")
+#Python code: Document similarity using pre-trained embeddingsimport pandas as pd
+import re
+import nltk
+from nltk.corpus import stopwords
+
+# ----------------------------
+# 1) LOAD DATASET
+# ----------------------------
+# Example: BBC News dataset from Kaggle
+csv_path = "/content/Articles.csv"
+TEXT_COL = "Article"
+
+df = pd.read_csv(csv_path, encoding='latin1')
+df = df.dropna(subset=[TEXT_COL]).reset_index(drop=True)
+# ----------------------------
+# 2) NLP PREPROCESSING
+# ----------------------------
+nltk.download("stopwords")
+stop_words = set(stopwords.words("english"))
+
+def tokenize(text):
+    text = text.lower()
+    text = re.sub(r"[^a-z\s]", " ", text)
+    tokens = [w for w in text.split() if w not in stop_words and len(w) > 2]
+    return tokens
+
+tokenized_docs = df[TEXT_COL].astype(str).apply(tokenize).tolist()
+
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+import gensim.downloader as api
+
+# Assume you already have:
+# - df
+# - TEXT_COL
+# - tokenized_docs
+# from the previous code block.
+
+glove = api.load("glove-wiki-gigaword-100")
+dim = glove.vector_size
+
+def doc_vector_avg(tokens, keyed_vectors, dim):
+    vecs = [keyed_vectors[t] for t in tokens if t in keyed_vectors]
+    if not vecs:
+        return np.zeros(dim, dtype=np.float32)
+    return np.mean(vecs, axis=0).astype(np.float32)
+
+doc_vecs = np.vstack([doc_vector_avg(toks, glove, dim) for toks in tokenized_docs])
+
+# Pairwise cosine similarity (NxN) — OK for small/medium datasets
+sim_matrix = cosine_similarity(doc_vecs)
+
+def most_similar_docs(query_index: int, top_k: int = 5):
+    scores = sim_matrix[query_index].copy()
+    scores[query_index] = -1  # exclude itself
+    best_idx = np.argsort(scores)[::-1][:top_k]
+    return [(int(i), float(scores[i])) for i in best_idx]
+
+# Demo: show similar docs to doc 0
+q = 0
+print("QUERY DOC:\n", df.loc[q, TEXT_COL][:400], "\n")
+for idx, score in most_similar_docs(q, top_k=5):
+    print(f"\n--- Similar doc idx={idx} score={score:.4f} ---")
+    print(df.loc[idx, TEXT_COL][:250])
