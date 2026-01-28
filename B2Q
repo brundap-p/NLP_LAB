@@ -1,0 +1,177 @@
+#load data set
+import pandas as pd
+
+# Load Kaggle dataset
+df = pd.read_csv("/content/bbc-text.csv")  # rename if needed
+
+print(df.head())
+print(df['category'].value_counts())
+
+#Data Cleaning & NLP Preprocessing
+import re
+import nltk
+from nltk.corpus import stopwords
+
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english'))
+
+def preprocess_text(text):
+    text = text.lower()
+    text = re.sub(r'[^a-z\s]', '', text)
+    tokens = text.split()
+    tokens = [w for w in tokens if w not in stop_words]
+    return " ".join(tokens)
+
+df['clean_text'] = df['text'].apply(preprocess_text)
+
+#Feature Engineering – TF-IDF
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+tfidf = TfidfVectorizer(
+    max_df=0.7,
+    min_df=5,
+    ngram_range=(1,2)
+)
+
+X_tfidf = tfidf.fit_transform(df['clean_text'])
+
+print("TF-IDF Shape:", X_tfidf.shape)
+
+# -----------------------------
+# COSINE SIMILARITY COMPUTATION
+# -----------------------------
+from sklearn.metrics.pairwise import cosine_similarity
+
+cosine_sim_matrix = cosine_similarity(X_tfidf)
+
+print("Cosine Similarity Matrix Shape:", cosine_sim_matrix.shape)
+
+# Similarity between first 5 documents
+pd.DataFrame(
+    cosine_sim_matrix[:5, :5],
+    columns=[f"Doc{i}" for i in range(5)],
+    index=[f"Doc{i}" for i in range(5)]
+)
+
+# -----------------------------
+# SIMILARITY-BASED CLUSTERING
+# -----------------------------
+similarity_threshold = 0.7  # can tune (0.6–0.8)
+
+clusters = {}
+visited = set()
+
+for i in range(len(cosine_sim_matrix)):
+    if i in visited:
+        continue
+    clusters[i] = []
+    for j in range(len(cosine_sim_matrix)):
+        if cosine_sim_matrix[i][j] >= similarity_threshold:
+            clusters[i].append(j)
+            visited.add(j)
+
+print("Number of similarity-based clusters:", len(clusters))
+
+# Show top 3 clusters with sample documents
+for cluster_id, docs in list(clusters.items())[:3]:
+    print(f"\nCluster {cluster_id} (Total docs: {len(docs)})")
+    for d in docs[:3]:
+        print("-", df.iloc[d]['category'], ":", df.iloc[d]['text'][:120], "...")
+
+# Find most similar document to a given document
+doc_id = 10
+similar_docs = cosine_sim_matrix[doc_id].argsort()[::-1][1:6]
+
+print("Document", doc_id, "most similar documents:")
+for idx in similar_docs:
+    print(idx, " | Category:", df.iloc[idx]['category'])
+
+# ------------------------------------
+# K-MEANS CLUSTERING
+# ------------------------------------
+from sklearn.cluster import KMeans
+
+num_clusters = 5   # BBC dataset has 5 categories
+
+kmeans = KMeans(
+    n_clusters=num_clusters,
+    random_state=42,
+    n_init=10
+)
+
+kmeans_labels = kmeans.fit_predict(X_tfidf)
+
+# Add cluster labels to dataframe
+df['kmeans_cluster'] = kmeans_labels
+
+print(df[['category', 'kmeans_cluster']].head())
+
+# ------------------------------------
+# PCA FOR VISUALIZATION
+# ------------------------------------
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+
+# Reduce TF-IDF to 2D
+pca = PCA(n_components=2, random_state=42)
+X_pca = pca.fit_transform(X_tfidf.toarray())
+
+# ------------------------------------
+# PLOT K-MEANS CLUSTERS
+# ------------------------------------
+plt.figure(figsize=(8, 6))
+
+scatter = plt.scatter(
+    X_pca[:, 0],
+    X_pca[:, 1],
+    c=df['kmeans_cluster'],
+    s=15
+)
+
+plt.title("K-Means Clustering of Documents (TF-IDF + PCA)")
+plt.xlabel("PCA Component 1")
+plt.ylabel("PCA Component 2")
+plt.colorbar(scatter, label="Cluster ID")
+plt.show()
+
+# ------------------------------------
+# HIERARCHICAL CLUSTERING
+# ------------------------------------
+from scipy.cluster.hierarchy import linkage, fcluster
+from scipy.spatial.distance import pdist
+
+# Convert TF-IDF to cosine distance
+distance_matrix = pdist(X_tfidf.toarray(), metric='cosine')
+
+# Perform hierarchical clustering
+linkage_matrix = linkage(distance_matrix, method='average')
+
+# Form clusters
+hierarchical_labels = fcluster(
+    linkage_matrix,
+    t=num_clusters,
+    criterion='maxclust'
+)
+
+# Add to dataframe
+df['hierarchical_cluster'] = hierarchical_labels
+
+print(df[['category', 'hierarchical_cluster']].head())
+
+# ------------------------------------
+# DENDROGRAM VISUALIZATION
+# ------------------------------------
+import matplotlib.pyplot as plt
+from scipy.cluster.hierarchy import dendrogram
+
+plt.figure(figsize=(10, 5))
+dendrogram(linkage_matrix, truncate_mode='level', p=5)
+plt.title("Hierarchical Clustering Dendrogram")
+plt.xlabel("Documents")
+plt.ylabel("Cosine Distance")
+plt.show()
+
+print("K-Means clusters count:")
+print(df['kmeans_cluster'].value_counts())
+print("\nHierarchical clusters count:")
+print(df['hierarchical_cluster'].value_counts())
