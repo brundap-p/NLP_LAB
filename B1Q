@@ -1,0 +1,144 @@
+#STEP 1: Load Dataset
+import pandas as pd
+
+df = pd.read_csv('/content/amazon_alexa.csv', sep='\t')
+df.head()
+
+#STEP 2: Basic Data Cleaning
+df = df[['verified_reviews', 'rating']]
+df.dropna(inplace=True)
+
+df['verified_reviews'] = df['verified_reviews'].astype(str)
+
+#STEP 3: NLP Preprocessing (Text Cleaning)
+import re
+import nltk
+from nltk.corpus import stopwords
+
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english'))
+
+def preprocess_text(text):
+    text = text.lower()
+    text = re.sub(r"[^a-z\s]", "", text)
+    text = " ".join(word for word in text.split() if word not in stop_words)
+    return text
+
+df['clean_review'] = df['verified_reviews'].apply(preprocess_text)
+
+#STEP 4: Create Sentiment Labels (Same Logic as Case Study)
+def label_sentiment(rating):
+    if rating >= 4:
+        return "positive"
+    elif rating == 3:
+        return "neutral"
+    else:
+        return "negative"
+
+df['sentiment'] = df['rating'].apply(label_sentiment)
+
+#STEP 5: (Lexicon-Based Sentiment Analysis)
+from nltk.sentiment import SentimentIntensityAnalyzer
+nltk.download('vader_lexicon')
+
+sia = SentimentIntensityAnalyzer()
+
+def vader_sentiment(text):
+    score = sia.polarity_scores(text)['compound']
+    if score >= 0.05:
+        return "positive"
+    elif score <= -0.05:
+        return "negative"
+    else:
+        return "neutral"
+
+df['vader_sentiment'] = df['clean_review'].apply(vader_sentiment)
+
+#STEP 6: Feature Engineering
+#A. Review Length Feature
+df['review_length'] = df['clean_review'].apply(lambda x: len(x.split()))
+
+#B. TF-IDF Vectorization
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+tfidf = TfidfVectorizer(max_features=5000)
+X_tfidf = tfidf.fit_transform(df['clean_review'])
+
+#C. Polarity Score as Numeric Feature
+df['polarity_score'] = df['clean_review'].apply(
+    lambda x: sia.polarity_scores(x)['compound']
+)
+
+from sklearn.metrics import classification_report, accuracy_score
+
+# Print classification report
+print("Lexicon-Based (VADER) Classification Report:\n")
+print(classification_report(df['sentiment'], df['vader_sentiment']))
+
+# Print accuracy
+lexical_accuracy = accuracy_score(df['sentiment'], df['vader_sentiment'])
+print("Lexicon-Based Accuracy:", lexical_accuracy)
+
+import matplotlib.pyplot as plt
+
+# Count sentiment values
+sentiment_counts = df['vader_sentiment'].value_counts()
+
+plt.figure()
+sentiment_counts.plot(kind='bar')
+plt.title("Sentiment Distribution (Lexicon-Based - VADER)")
+plt.xlabel("Sentiment")
+plt.ylabel("Number of Reviews")
+plt.show()
+
+#STEP 7: Machine Learning–Based Sentiment Analysis
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, accuracy_score
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_tfidf, df['sentiment'], test_size=0.2, random_state=42
+)
+
+ml_model = LogisticRegression(max_iter=1000)
+ml_model.fit(X_train, y_train)
+
+y_pred = ml_model.predict(X_test)
+
+print(classification_report(y_test, y_pred))
+
+# ML Accuracy (this was a bug in the original notebook, ml_accuracy was not defined before print)
+ml_accuracy = accuracy_score(y_test, y_pred)
+print("ML Model Accuracy:", ml_accuracy)
+
+#STEP 8: Visualization (Graphs Required in Assignment)
+import matplotlib.pyplot as plt
+
+df['sentiment'].value_counts().plot(kind='bar')
+plt.title("Sentiment Distribution (ML-Based)")
+plt.xlabel("Sentiment")
+plt.ylabel("Count")
+plt.show()
+
+comparison_df = pd.DataFrame({
+    "Lexicon": df['vader_sentiment'].value_counts(),
+    "ML": df['sentiment'].value_counts()
+})
+
+comparison_df.plot(kind='bar')
+plt.title("Lexicon vs ML Sentiment Distribution")
+plt.show()
+
+#STEP 9: Compare Results (Mandatory)
+
+# ML Accuracy
+ml_accuracy = accuracy_score(y_test, y_pred)
+
+# Lexicon Accuracy
+lex_accuracy = accuracy_score(
+    df.loc[y_test.index, 'sentiment'],
+    df.loc[y_test.index, 'vader_sentiment']
+)
+
+print("ML Model Accuracy:", ml_accuracy)
+print("Lexicon Model Accuracy:", lex_accuracy)
