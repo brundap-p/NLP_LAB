@@ -1,0 +1,41 @@
+from datasets import load_dataset
+import pandas as pd
+
+dataset = load_dataset("opus_books", "en-es")
+
+df = pd.DataFrame(dataset['train'])
+
+# Display the first few rows of the DataFrame.
+display(df.head())
+
+# Display information about the dataset.
+print(df.info())
+
+# Handle Unicode text
+import nltk
+nltk.download('punkt')
+
+# Handle special characters
+import nltk
+nltk.download('punkt_tab')
+
+from nltk.tokenize import word_tokenize
+import string
+
+def tokenize_spanish(text):
+  """Tokenizes Spanish text, handling punctuation and converting to lowercase."""
+  if not isinstance(text, str):
+    return ""
+
+  # Remove punctuation & special,charecters such as ., ! ? ; : ( ) [ ] ' "
+
+  text = text.translate(str.maketrans('', '', string.punctuation))
+  # Tokenize and convert to lowercase
+  tokens = word_tokenize(text.lower(), language='spanish')
+  return tokens
+
+# Apply the tokenization function to the Spanish translation column
+df['es_tokens'] = df['translation'].apply(lambda x: tokenize_spanish(x.get('es', '')))
+
+# Display the first few rows with the new tokens column
+display(df[['translation', 'es_tokens']].head())
