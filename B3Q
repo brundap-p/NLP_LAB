@@ -1,0 +1,88 @@
+import pandas as pd
+import re
+import nltk
+
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.decomposition import LatentDirichletAllocation, NMF
+
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+# Load dataset
+df = pd.read_csv("/content/bbc_news.csv")
+
+# Combine title and description columns
+df['text'] = df['title'].fillna('') + " " + df['description'].fillna('')
+
+documents = df['text'].dropna().reset_index(drop=True)
+
+print("Total documents:", len(documents))
+
+stop_words = set(stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
+
+def preprocess_text(text):
+    text = text.lower()
+    text = re.sub(r"http\S+|www\S+", "", text)
+    text = re.sub(r"[^a-z\s]", "", text)
+    tokens = text.split()
+    tokens = [lemmatizer.lemmatize(word)
+              for word in tokens
+              if word not in stop_words and len(word) > 2]
+    return " ".join(tokens)
+
+documents_cleaned = documents.apply(preprocess_text)
+
+print(documents_cleaned.head())
+
+count_vectorizer = CountVectorizer(
+    max_df=0.9,
+    min_df=20
+)
+
+X_count = count_vectorizer.fit_transform(documents_cleaned)
+
+#LDA
+lda_model = LatentDirichletAllocation(
+    n_components=6,
+    random_state=42
+)
+
+lda_model.fit(X_count)
+
+def display_topics(model, feature_names, num_words=10):
+    for idx, topic in enumerate(model.components_):
+        print(f"\nLDA Topic {idx+1}:")
+        print(", ".join([feature_names[i] for i in topic.argsort()[-num_words:]]))
+
+feature_names_lda = count_vectorizer.get_feature_names_out()
+display_topics(lda_model, feature_names_lda)
+
+#NMF
+tfidf_vectorizer = TfidfVectorizer(
+    max_df=0.9,
+    min_df=20
+)
+
+X_tfidf = tfidf_vectorizer.fit_transform(documents_cleaned)
+
+nmf_model = NMF(
+    n_components=6,
+    random_state=42
+)
+
+nmf_model.fit(X_tfidf)
+
+feature_names_nmf = tfidf_vectorizer.get_feature_names_out()
+
+for idx, topic in enumerate(nmf_model.components_):
+    print(f"\nNMF Topic {idx+1}:")
+    print(", ".join([feature_names_nmf[i] for i in topic.argsort()[-10:]]))
+
+doc_topic_distribution = lda_model.transform(X_count)
+
+print("Topic distribution for first document:")
+print(doc_topic_distribution[0])
