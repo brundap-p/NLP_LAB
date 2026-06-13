@@ -1,6 +1,6 @@
 # Natural Language Processing Laboratory Programs
 
-This repository contains Natural Language Processing (NLP) laboratory programs completed as part of my poastgraduate coursework. The programs demonstrate various NLP techniques used for processing, analyzing, and extracting information from textual data.
+This repository contains Natural Language Processing (NLP) laboratory programs completed as part of my postgraduate coursework. The programs demonstrate various NLP techniques used for processing, analyzing, and extracting information from textual data.
 
 The laboratory exercises cover fundamental concepts of NLP, including text preprocessing, tokenization, stemming, lemmatization, part-of-speech tagging, sentiment analysis, and other language processing tasks.
 
